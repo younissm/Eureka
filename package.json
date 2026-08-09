@@ -4,8 +4,10 @@
   "description": "Fullstack e-commerce platform with Django & React",
   "main": "index.js",
   "scripts": {
-    "dev": "echo 'Run frontend and backend separately' && echo 'Frontend: cd frontend && npm run dev' && echo 'Backend: cd backend && python manage.py runserver'",
-    "build": "cd frontend && npm run build:production",
+    "dev": "echo 'Run frontend and backend separately' && echo 'Frontend: cd frontend-proto && npm run dev' && echo 'Backend: cd backend && python manage.py runserver'",
+    "build": "cd frontend-proto && npm run build",
+    "frontend:proto": "cd frontend-proto && npm run dev",
+    "frontend:proto:build": "cd frontend-proto && npm run build",
     "start": "echo 'Use Docker Compose: docker-compose up'",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",

@@ -31,7 +31,7 @@ services:
     environment:
       - VITE_API_URL=http://localhost:8000
     volumes:
-      - ./frontend:/app/frontend
+      - ./frontend-proto:/app/frontend
       - /app/frontend/node_modules
     working_dir: /app/frontend
     depends_on:

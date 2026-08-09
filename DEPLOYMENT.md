@@ -53,6 +53,9 @@
    - Region: Oregon
    - Copy the **Database URL**
 
+> Note: Render free tier does not include managed PostgreSQL.
+> For a free deployment, either use an external free PostgreSQL provider (for example, Supabase, Neon, or ElephantSQL) and set `DATABASE_URL`, or use SQLite for a temporary demo only. SQLite on Render free tier is not persistent between restarts.
+
 7. Add Environment Variables:
    ```
    DJANGO_DEBUG=False
@@ -65,6 +68,77 @@
 
 8. Click **"Create Web Service"**
 
+### Alternative Backend Deployment: PythonAnywhere
+If you want to host only the backend on PythonAnywhere, keep the frontend on Render or any static host. Use an external `DATABASE_URL` such as Supabase, Neon, or ElephantSQL, because PythonAnywhere free accounts may have limited external network access.
+
+1. Create a PythonAnywhere account and log in.
+2. Open the **Web** tab and create a new web app:
+   - Python version: 3.11
+   - Manual configuration
+3. In the **Files** tab, clone your repository under `/home/<your-username>/eureka`:
+   ```bash
+   git clone https://github.com/younissm/eureka.git
+   ```
+4. Create and activate a virtualenv and install dependencies inside it:
+   ```bash
+   python3.12 -m venv ~/venv/eureka
+   source ~/venv/eureka/bin/activate
+   ~/venv/eureka/bin/pip install --upgrade pip
+   ~/venv/eureka/bin/pip install -r ~/eureka/backend/requirements.txt
+   ```
+5. In the **Web** tab, set the source code directory to `/home/<your-username>/eureka/backend`.
+6. Set the virtualenv path in the Web tab to `/home/<your-username>/venv/eureka`.
+7. Edit the WSGI file (from the **Web** tab) and add:
+   ```python
+   import os
+   import sys
+
+   path = '/home/<your-username>/eureka/backend'
+   if path not in sys.path:
+       sys.path.insert(0, path)
+
+   os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ecommerce.settings')
+
+   from django.core.wsgi import get_wsgi_application
+   application = get_wsgi_application()
+   ```
+7. In the **Web** tab, add environment variables:
+   - `DJANGO_DEBUG=False`
+   - `DJANGO_SECRET_KEY=<secure-key>`
+   - `DJANGO_ALLOWED_HOSTS=<your-username>.pythonanywhere.com`
+   - `DATABASE_URL=<external Postgres URL>`
+   - `CORS_ALLOWED_ORIGINS=https://eureka-frontend.onrender.com`
+   - `ENVIRONMENT=production`
+
+> If your WSGI file imports `dotenv` or `python-dotenv`, make sure `python-dotenv` is installed inside the same virtualenv and listed in `backend/requirements.txt`.
+>
+> If you do not want `.env` loading in WSGI, remove the `from dotenv import load_dotenv` line and rely on environment variables configured in the PythonAnywhere Web tab.
+
+8. In **Static files** map:
+   - URL `/static/` to `/home/<your-username>/eureka/backend/staticfiles`
+9. Run the following from a Bash console:
+   ```bash
+   source ~/venv/eureka/bin/activate
+   cd ~/eureka/backend
+   python manage.py collectstatic --noinput
+   python manage.py migrate
+   ```
+10. Reload the web app from the **Web** tab.
+
+If you still see a 500 error, check the PythonAnywhere logs:
+- Web tab → **Error log**
+- Web tab → **Server log**
+- Web tab → **Access log**
+
+You can also run:
+```bash
+cd ~/eureka/backend
+python manage.py check
+python manage.py migrate --check
+```
+
+> Note: PythonAnywhere free accounts may have outgoing network restrictions. External Postgres may require a paid account or a whitelisted provider. SQLite can work for quick demos but is not recommended for production.
+
 #### Deploy Frontend
 1. Click **"New +"** → **"Static Site"**
 2. Select `younissm/eureka`
@@ -72,9 +146,9 @@
    - **Name**: eureka-frontend
    - **Build Command**: 
      ```bash
-     cd frontend && npm install && npm run build:production
+     cd frontend-proto && npm install && npm run build
      ```
-   - **Publish Directory**: `frontend/dist`
+   - **Publish Directory**: `frontend-proto/dist`
 
 4. Add Environment Variables:
    ```

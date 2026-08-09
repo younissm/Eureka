@@ -88,7 +88,7 @@ Backend runs on: `http://localhost:8000`
 
 #### 3. Setup Frontend
 ```bash
-cd ../frontend
+cd frontend-proto
 
 # Install dependencies
 npm install
@@ -131,13 +131,16 @@ docker-compose up -d
    - `DATABASE_URL=<PostgreSQL connection string>`
    - `CORS_ALLOWED_ORIGINS=https://eureka-frontend.onrender.com`
 
+> Alternative: Host the Django backend on PythonAnywhere and keep the frontend on Render or another static host.
+> On PythonAnywhere, configure the web app to use `backend/ecommerce/wsgi.py`, set `DJANGO_DEBUG`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, `DATABASE_URL`, and `CORS_ALLOWED_ORIGINS` in the Web tab, and use an external Postgres provider for production.
+
 ### Frontend Deployment
 
 1. **Create Static Site** on Render
 2. **Settings**:
    - Name: `eureka-frontend`
-   - Build Command: `cd frontend && npm install && npm run build:production`
-   - Publish Directory: `frontend/dist`
+   - Build Command: `cd frontend-proto && npm install && npm run build`
+   - Publish Directory: `frontend-proto/dist`
    - Add Environment Variables:
      - `VITE_API_URL=https://eureka-backend.onrender.com`
 
