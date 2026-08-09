@@ -106,10 +106,13 @@ If you want to host only the backend on PythonAnywhere, keep the frontend on Ren
    - `DJANGO_DEBUG=False`
    - `DJANGO_SECRET_KEY=<secure-key>`
    - `DJANGO_ALLOWED_HOSTS=<your-username>.pythonanywhere.com`
-   - `DATABASE_URL=<external Postgres URL>`
+   - `DATABASE_URL=sqlite:////home/<your-username>/eureka/backend/db.sqlite3`
    - `CORS_ALLOWED_ORIGINS=https://eureka-frontend.onrender.com`
    - `ENVIRONMENT=production`
 
+> Use the local SQLite database to avoid external Postgres networking issues on PythonAnywhere.
+> If you later want a dedicated external database, replace `DATABASE_URL` with the provider URL.
+>
 > If your WSGI file imports `dotenv` or `python-dotenv`, make sure `python-dotenv` is installed inside the same virtualenv and listed in `backend/requirements.txt`.
 >
 > If you do not want `.env` loading in WSGI, remove the `from dotenv import load_dotenv` line and rely on environment variables configured in the PythonAnywhere Web tab.
@@ -124,6 +127,8 @@ If you want to host only the backend on PythonAnywhere, keep the frontend on Ren
    python manage.py migrate
    ```
 10. Reload the web app from the **Web** tab.
+
+> Since you are using a dedicated PythonAnywhere profile, this deployment can use SQLite locally and avoid the external database network issue.
 
 If you still see a 500 error, check the PythonAnywhere logs:
 - Web tab → **Error log**
