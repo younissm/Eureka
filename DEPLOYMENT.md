@@ -151,9 +151,9 @@ python manage.py migrate --check
    - **Name**: eureka-frontend
    - **Build Command**: 
      ```bash
-     cd frontend-proto && npm install && npm run build
+     cd frontend && npm install && npm run build:production
      ```
-   - **Publish Directory**: `frontend-proto/dist`
+   - **Publish Directory**: `frontend/dist`
 
 4. Add Environment Variables:
    ```

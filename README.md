@@ -139,8 +139,8 @@ docker-compose up -d
 1. **Create Static Site** on Render
 2. **Settings**:
    - Name: `eureka-frontend`
-   - Build Command: `cd frontend-proto && npm install && npm run build`
-   - Publish Directory: `frontend-proto/dist`
+   - Build Command: `cd frontend && npm install && npm run build:production`
+   - Publish Directory: `frontend/dist`
    - Add Environment Variables:
      - `VITE_API_URL=https://eureka-backend.onrender.com`
 

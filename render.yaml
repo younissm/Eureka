@@ -29,8 +29,8 @@ services:
     env: static
     region: oregon
     plan: standard
-    buildCommand: cd frontend-proto && npm install && npm run build
-    staticPublishPath: frontend-proto/dist
+    buildCommand: cd frontend && npm install && npm run build:production
+    staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_URL
         value: https://eureka-backend.onrender.com
