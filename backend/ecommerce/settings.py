@@ -14,7 +14,7 @@ from pathlib import Path
 import os
 import re
 from datetime import timedelta
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -104,6 +104,11 @@ if DATABASE_URL:
             }
         }
     else:
+        query_params = parse_qs(url.query)
+        db_options = {}
+        if 'sslmode' in query_params:
+            db_options['sslmode'] = query_params['sslmode'][-1]
+
         DATABASES = {
             'default': {
                 'ENGINE': 'django.db.backends.postgresql',
@@ -112,6 +117,7 @@ if DATABASE_URL:
                 'PASSWORD': url.password,
                 'HOST': url.hostname,
                 'PORT': url.port or '5432',
+                'OPTIONS': db_options,
             }
         }
 else:
