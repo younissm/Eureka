@@ -161,7 +161,12 @@ python manage.py migrate --check
    ```
 
 5. Click **"Create Static Site"**
+> Render Alternatives
+> - **Cloudflare Pages** (recommended)
+> - **Vercel**
+> - **GitHub Pages**
 
+> These hosts can build Vite apps from `frontend` and publish the `frontend/dist` folder without requiring a credit card.
 ### Step 4: Post-Deployment Setup
 
 #### Update CORS & Allowed Hosts

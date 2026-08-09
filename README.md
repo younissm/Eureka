@@ -144,6 +144,11 @@ docker-compose up -d
    - Add Environment Variables:
      - `VITE_API_URL=https://eureka-backend.onrender.com`
 
+> Render Alternatives
+> - **Cloudflare Pages**: free static hosting with GitHub integration
+> - **Vercel**: free static deploys and easy Vite support
+> - **GitHub Pages**: simple repo deployment for static sites
+
 ### Automated Deployment with `render.yaml`
 
 Use the included `render.yaml` for one-click deployment:
