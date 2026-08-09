@@ -12,11 +12,20 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
+import re
 from datetime import timedelta
 from urllib.parse import urlparse
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env.production or .env if present.
+env_path = BASE_DIR.parent / '.env.production'
+if not env_path.exists():
+    env_path = BASE_DIR.parent / '.env'
+if env_path.exists():
+    load_dotenv(env_path)
 
 
 # Quick-start development settings - unsuitable for production
@@ -28,7 +37,8 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-$y=q_gekr1nus*9o1#j
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',') if host.strip()]
+allowed_hosts_env = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [host.strip() for host in re.split(r'[\s,]+', allowed_hosts_env) if host.strip()]
 
 
 # Application definition
