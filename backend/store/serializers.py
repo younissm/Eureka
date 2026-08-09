@@ -67,7 +67,17 @@ class ReviewSerializer(serializers.ModelSerializer):
     def get_user(self, obj):
         user = obj.user
         req = self.context.get("request")
-        image_url = req.build_absolute_uri(user.image.url) if req else user.image.url
+        image_url = None
+
+        if user.image and hasattr(user.image, 'url'):
+            try:
+                if req:
+                    image_url = req.build_absolute_uri(user.image.url)
+                else:
+                    image_url = user.image.url
+            except Exception:
+                image_url = None
+
         return {
             'email': user.email,
             'name': user.name,

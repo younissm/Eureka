@@ -50,7 +50,7 @@ class Review(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f'{self.user.username} - {self.product.name} - {self.rating}'
+        return f'{self.user.username} - {self.product.title} - {self.rating}'
 
     
 # class Order(models.Model):
