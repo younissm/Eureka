@@ -81,6 +81,7 @@ class ReviewSerializer(serializers.ModelSerializer):
                 image_url = None
 
         return {
+            'id': user.id,
             'email': user.email,
             'name': user.name,
             'image': image_url

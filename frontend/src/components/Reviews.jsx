@@ -30,6 +30,11 @@ import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import CustomeModal from "../shared/Modal";
 import CustomeAlertDialog from "../shared/AlretDialog";
 
+const getErrorMessage = (error) => {
+  const data = error?.response?.data;
+  return data?.detail || data?.message || error?.message;
+};
+
 const Reviews = ({ productId }) => {
   const [rating, setRating] = useState(0);
   const [clickedReviewId, setClickedReviewId] = useState(null);
@@ -69,7 +74,7 @@ const Reviews = ({ productId }) => {
       onError: (error) => {
         toast({
           title: "حدث خطأ في التقييم",
-          description: error.response.data.message || error.message,
+          description: getErrorMessage(error),
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -97,7 +102,7 @@ const Reviews = ({ productId }) => {
       onError: (error) => {
         toast({
           title: "حدث خطأ في تعديل التقييم",
-          description: error.response.data.message || error.message,
+          description: getErrorMessage(error),
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -122,7 +127,7 @@ const Reviews = ({ productId }) => {
     onError: (error) => {
       toast({
         title: "حدث خطأ في حذف التقييم",
-        description: error.response.data.message || error.message,
+        description: getErrorMessage(error),
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -274,8 +279,11 @@ const Reviews = ({ productId }) => {
                     cursor="pointer"
                     onClick={() => {
                       setClickedReviewId(review.id);
+                      setRating(review.rating);
+                      reset({ review: review.review });
                       onOpen();
                     }}
+                    aria-label="تعديل المراجعة"
                   >
                     <FiEdit2 size="18px" />
                   </Box>
@@ -321,6 +329,7 @@ const Reviews = ({ productId }) => {
         <Box>
           <Rating
             onClick={handleRating}
+            initialValue={rating}
             ratingValue={rating}
             rtl
             transition

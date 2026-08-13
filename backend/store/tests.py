@@ -218,6 +218,14 @@ class ReviewCreateAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(Review.objects.count(), 0)
 
+    def test_review_payload_exposes_user_id(self):
+        Review.objects.create(
+            user=self.user, product=self.product, rating=4, review="Good"
+        )
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]["user"]["id"], self.user.id)
+
     def test_review_for_missing_product_returns_404(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(
@@ -226,6 +234,75 @@ class ReviewCreateAPITest(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ReviewDetailAPITest(APITestCase):
+    """Test editing and deleting an existing review."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="owner@example.com",
+            name="Owner",
+            password="testpass123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            name="Other",
+            password="testpass123",
+        )
+        self.category = Category.objects.create(title="Test Category")
+        self.product = Product.objects.create(
+            title="Test Product",
+            price=99.99,
+            description="Test Description",
+            stock=10,
+            category=self.category,
+        )
+        self.review = Review.objects.create(
+            user=self.user, product=self.product, rating=3, review="Okay"
+        )
+        self.url = f"/api/reviews/{self.review.id}"
+
+    def test_owner_can_update_own_review(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(
+            self.url, {"rating": 5, "review": "Actually great"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.review.refresh_from_db()
+        self.assertEqual(self.review.rating, 5)
+        self.assertEqual(self.review.review, "Actually great")
+
+    def test_non_owner_cannot_update_review(self):
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.patch(
+            self.url, {"rating": 1, "review": "Hijacked"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.review.refresh_from_db()
+        self.assertEqual(self.review.rating, 3)
+
+    def test_owner_can_delete_own_review(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.delete(self.url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Review.objects.count(), 0)
+
+    def test_non_owner_cannot_delete_review(self):
+        self.client.force_authenticate(user=self.other_user)
+        response = self.client.delete(self.url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Review.objects.count(), 1)
+
+    def test_user_can_review_again_after_deleting(self):
+        self.client.force_authenticate(user=self.user)
+        self.client.delete(self.url)
+        response = self.client.post(
+            f"/api/products/{self.product.id}/reviews",
+            {"rating": 4, "review": "Second attempt"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
 # ============================================================================
