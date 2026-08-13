@@ -77,6 +77,15 @@ class ReviewListCreateView(generics.ListCreateAPIView):
             raise PermissionDenied("Cannot review if you are not authenticated!")
         product_id = self.kwargs.get('product_id')
         product = Product.objects.get(pk=product_id)
+        
+        existing_review = Review.objects.filter(
+            user=self.request.user,
+            product_id=product_id
+        ).first()
+        
+        if existing_review:
+            raise PermissionDenied("You have already reviewed this product. You can edit your existing review instead.")
+        
         serializer.save(user=self.request.user, product=product)
 
 
@@ -102,6 +111,6 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer.save()
 
     def perform_destroy(self, instance):
-        if instance.user != self.request.user:
+        if instance.user != self.request.user and not self.request.user.is_staff:
             raise PermissionDenied("You do not have permission to delete this review.")
         instance.delete()

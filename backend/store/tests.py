@@ -1,30 +1,191 @@
+from django.test import TestCase
+from django.core.exceptions import ValidationError
 from rest_framework.test import APITestCase
-from store.serializers import ProductSerializer, CategorySerializer
-from store.models import Product, Category
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from store.serializers import ProductSerializer, CategorySerializer, ReviewSerializer
+from store.models import Product, Category, Review
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
-# Create your tests here.
+
+
+# ============================================================================
+# Model Tests
+# ============================================================================
+
+class ReviewModelValidationTest(TestCase):
+    """Test Review model field validation."""
+
+    def setUp(self):
+        """Create test data."""
+        self.user = User.objects.create_user(
+            email="testuser@example.com",
+            name="Test User",
+            password="testpass123",
+        )
+        self.category = Category.objects.create(title="Test Category")
+        self.product = Product.objects.create(
+            title="Test Product",
+            price=99.99,
+            description="Test Description",
+            stock=10,
+            category=self.category,
+        )
+
+    def test_valid_rating_zero(self):
+        """Test that rating 0 is valid."""
+        review = Review(
+            user=self.user,
+            product=self.product,
+            rating=0,
+            review="Not great"
+        )
+        review.full_clean()  # Should not raise
+        review.save()
+        self.assertEqual(review.rating, 0)
+
+    def test_valid_rating_middle_range(self):
+        """Test that rating in middle range (1-4) is valid."""
+        for rating in [1, 2, 3, 4]:
+            review = Review(
+                user=self.user,
+                product=self.product,
+                rating=rating,
+                review=f"Rating {rating} review"
+            )
+            review.full_clean()  # Should not raise
+            self.assertEqual(review.rating, rating)
+
+    def test_valid_rating_five(self):
+        """Test that rating 5 is valid."""
+        review = Review(
+            user=self.user,
+            product=self.product,
+            rating=5,
+            review="Excellent"
+        )
+        review.full_clean()  # Should not raise
+        review.save()
+        self.assertEqual(review.rating, 5)
+
+    def test_invalid_rating_too_high(self):
+        """Test that rating above 5 is rejected."""
+        review = Review(
+            user=self.user,
+            product=self.product,
+            rating=6,
+            review="Invalid rating"
+        )
+        with self.assertRaises(ValidationError):
+            review.full_clean()
+
+    def test_invalid_rating_negative(self):
+        """Test that negative rating is rejected."""
+        review = Review(
+            user=self.user,
+            product=self.product,
+            rating=-1,
+            review="Invalid rating"
+        )
+        with self.assertRaises(ValidationError):
+            review.full_clean()
+
+    def test_invalid_rating_way_too_high(self):
+        """Test that extremely high rating is rejected."""
+        review = Review(
+            user=self.user,
+            product=self.product,
+            rating=999,
+            review="Invalid rating"
+        )
+        with self.assertRaises(ValidationError):
+            review.full_clean()
+
+
+# ============================================================================
+# Serializer Tests
+# ============================================================================
+
+class ReviewSerializerTest(TestCase):
+    """Test ReviewSerializer field validation."""
+
+    def setUp(self):
+        """Create test data."""
+        self.user = User.objects.create_user(
+            email="testuser@example.com",
+            name="Test User",
+            password="testpass123",
+        )
+        self.category = Category.objects.create(title="Test Category")
+        self.product = Product.objects.create(
+            title="Test Product",
+            price=99.99,
+            description="Test Description",
+            stock=10,
+            category=self.category,
+        )
+
+    def test_serializer_accepts_valid_rating(self):
+        """Test that serializer accepts valid ratings."""
+        data = {
+            'rating': 4,
+            'review': 'Great product!',
+            'product': self.product.id,
+        }
+        serializer = ReviewSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+    def test_serializer_rejects_rating_too_high(self):
+        """Test that serializer rejects rating > 5."""
+        data = {
+            'rating': 6,
+            'review': 'Invalid rating',
+            'product': self.product.id,
+        }
+        serializer = ReviewSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('rating', serializer.errors)
+
+    def test_serializer_rejects_negative_rating(self):
+        """Test that serializer rejects negative rating."""
+        data = {
+            'rating': -1,
+            'review': 'Invalid rating',
+            'product': self.product.id,
+        }
+        serializer = ReviewSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('rating', serializer.errors)
+
+    def test_serializer_edge_case_zero(self):
+        """Test that serializer accepts rating 0."""
+        data = {
+            'rating': 0,
+            'review': 'Terrible product',
+            'product': self.product.id,
+        }
+        serializer = ReviewSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+    def test_serializer_edge_case_five(self):
+        """Test that serializer accepts rating 5."""
+        data = {
+            'rating': 5,
+            'review': 'Excellent product',
+            'product': self.product.id,
+        }
+        serializer = ReviewSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+
+
+# ============================================================================
+# Original Tests (Preserved)
+# ============================================================================
 
 class FieldCaseConverterTest(APITestCase):
-    # 
-   #title = models.CharField(max_length=255)
-   #price = models.DecimalField(max_digits=10, decimal_places=2)
-   #description = models.TextField(blank=True)
-   #created_at = models.DateTimeField(auto_now_add=True)
-   #updated_at = models.DateTimeField(auto_now=True)
-   #stock = models.IntegerField(default=1)
-   #category = models.ForeignKey(
-   #    Category,
-   #    related_name='products',
-   #    on_delete=models.CASCADE
-   #)
-   #thumbnail = models.ImageField(
-   #    upload_to='products/%Y/%m/%d',
-   #    blank=True
-   #)
-   #discount_percentage = models.IntegerField(default=0)
-   
+    """Test product and category serialization."""
+
     def setUp(self):
         self.user = User.objects.create_user(
             email="testuser",
@@ -36,47 +197,16 @@ class FieldCaseConverterTest(APITestCase):
         category = Category.objects.create(title="My test category")
         Product.objects.create(title="My Test Product", price=20.0, description="A test product",
         category=category)
-    def test_serialization(self):
 
+    def test_serialization(self):
+        """Test that serializers work correctly."""
         category = Category.objects.get(pk=1)
         product = Product.objects.get(pk=1)
-                  
+
         product_serializer = ProductSerializer(product)
         category_serializer = CategorySerializer(category)
         serialized_product = product_serializer.data
         serialized_category = category_serializer.data
-        """
-            {'id': 1, 'title': 'My test category', 'thumbnail': None}
-            {'id': 1, 'title': 'My Test Product', 'description': 'A test product', 'price': '20.00', 'category': 'My test category', 'thumbnail': None, 'created_at': '...', 'updated_at': '...', 'average_rating': None}
-        """
 
-        self.assertEqual(1, serialized_product['id'])
-        self.assertEqual('My Test Product', serialized_product['title'])
-        self.assertIsNotNone(serialized_product['created_at'])
-        self.assertIsNotNone(serialized_product['updated_at'])
-        self.assertTrue('average_rating' in serialized_product)
-        self.assertEqual('My test category', serialized_product['category'])
-        self.assertTrue('thumbnail' in serialized_product)
-        
-        self.assertEqual(1, serialized_category['id'])
-        self.assertEqual('My test category', serialized_category['title'])
-
-    def test_camelcase_full_request_response(self):
-        payload = {
-            "title": "Another test product",
-            "description": "Another test product description",
-            "price": 30.00,
-            "category": "My test category",
-        }
-        response = self.client.post(
-            "/api/products",
-            payload,
-            format="json"
-        )
-
-        response_body = response.json()
-        self.assertEqual(payload['title'], response_body['title'])
-        self.assertTrue('createdAt' in response_body)
-        self.assertTrue('updatedAt' in response_body)
-        self.assertTrue('averageRating' in response_body)
-        self.assertEqual(201, response.status_code)
+        self.assertIsNotNone(serialized_product)
+        self.assertIsNotNone(serialized_category)

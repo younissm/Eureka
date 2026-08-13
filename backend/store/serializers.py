@@ -59,6 +59,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
+    rating = serializers.IntegerField(min_value=0, max_value=5)
+    
     class Meta:
         model = Review
         fields = ('id','rating','review','user','product', 'created_at')
