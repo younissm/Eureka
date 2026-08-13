@@ -50,8 +50,16 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'product'],
+                name='unique_review_per_user_product'
+            )
+        ]
+
     def __str__(self):
-        return f'{self.user.username} - {self.product.title} - {self.rating}'
+        return f'{self.user} - {self.product.title} - {self.rating}'
 
     
 # class Order(models.Model):

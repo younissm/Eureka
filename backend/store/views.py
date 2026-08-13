@@ -2,8 +2,9 @@ from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, BasePermission, SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework import parsers
+from django.shortcuts import get_object_or_404
 
 
 from .serializers import ProductSerializer, CategorySerializer, ReviewSerializer
@@ -73,10 +74,12 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         return Review.objects.filter(product_id=product_id)
 
     def perform_create(self, serializer):
-        if not self.request.user:
+        if not self.request.user.is_authenticated:
             raise PermissionDenied("Cannot review if you are not authenticated!")
         product_id = self.kwargs.get('product_id')
-        product = Product.objects.get(pk=product_id)
+        product = get_object_or_404(Product, pk=product_id)
+        if Review.objects.filter(user=self.request.user, product=product).exists():
+            raise ValidationError({"detail": "You have already reviewed this product."})
         serializer.save(user=self.request.user, product=product)
 
 

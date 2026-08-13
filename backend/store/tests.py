@@ -1,5 +1,7 @@
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.db.utils import IntegrityError
 from rest_framework.test import APITestCase
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -101,6 +103,129 @@ class ReviewModelValidationTest(TestCase):
         )
         with self.assertRaises(ValidationError):
             review.full_clean()
+
+
+class ReviewUniquenessTest(TestCase):
+    """Test that a user can only review a product once."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="testuser@example.com",
+            name="Test User",
+            password="testpass123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            name="Other User",
+            password="testpass123",
+        )
+        self.category = Category.objects.create(title="Test Category")
+        self.product = Product.objects.create(
+            title="Test Product",
+            price=99.99,
+            description="Test Description",
+            stock=10,
+            category=self.category,
+        )
+        self.other_product = Product.objects.create(
+            title="Other Product",
+            price=10.00,
+            description="Other Description",
+            stock=5,
+            category=self.category,
+        )
+
+    def test_duplicate_review_rejected(self):
+        """Test that the same user cannot review the same product twice."""
+        Review.objects.create(
+            user=self.user, product=self.product, rating=4, review="First"
+        )
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Review.objects.create(
+                user=self.user, product=self.product, rating=2, review="Second"
+            )
+
+    def test_same_user_can_review_different_products(self):
+        """Test that a user may review multiple distinct products."""
+        Review.objects.create(
+            user=self.user, product=self.product, rating=4, review="First"
+        )
+        Review.objects.create(
+            user=self.user, product=self.other_product, rating=5, review="Second"
+        )
+        self.assertEqual(Review.objects.filter(user=self.user).count(), 2)
+
+    def test_different_users_can_review_same_product(self):
+        """Test that distinct users may review the same product."""
+        Review.objects.create(
+            user=self.user, product=self.product, rating=4, review="First"
+        )
+        Review.objects.create(
+            user=self.other_user, product=self.product, rating=1, review="Second"
+        )
+        self.assertEqual(Review.objects.filter(product=self.product).count(), 2)
+
+
+# ============================================================================
+# API Tests
+# ============================================================================
+
+class ReviewCreateAPITest(APITestCase):
+    """Test the review creation endpoint."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="testuser@example.com",
+            name="Test User",
+            password="testpass123",
+        )
+        self.category = Category.objects.create(title="Test Category")
+        self.product = Product.objects.create(
+            title="Test Product",
+            price=99.99,
+            description="Test Description",
+            stock=10,
+            category=self.category,
+        )
+        self.url = f"/api/products/{self.product.id}/reviews"
+
+    def test_authenticated_user_can_create_review(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            self.url, {"rating": 5, "review": "Great!"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Review.objects.count(), 1)
+
+    def test_duplicate_review_returns_400(self):
+        self.client.force_authenticate(user=self.user)
+        first = self.client.post(
+            self.url, {"rating": 5, "review": "Great!"}, format="json"
+        )
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+
+        second = self.client.post(
+            self.url, {"rating": 1, "review": "Changed my mind"}, format="json"
+        )
+        self.assertEqual(second.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Review.objects.count(), 1)
+        self.assertIn("already reviewed", str(second.data).lower())
+
+    def test_anonymous_user_cannot_create_review(self):
+        response = self.client.post(
+            self.url, {"rating": 5, "review": "Great!"}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Review.objects.count(), 0)
+
+    def test_review_for_missing_product_returns_404(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+            "/api/products/99999/reviews",
+            {"rating": 5, "review": "Great!"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 # ============================================================================
