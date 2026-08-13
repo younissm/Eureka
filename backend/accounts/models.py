@@ -1,6 +1,6 @@
 #accounts/models.py
 
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 
 
@@ -38,15 +38,21 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
-class CustomUser(AbstractUser):
-    name = models.CharField(max_length=255, unique=False, blank=True, null=True)
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+    first_name = models.CharField(max_length=150, blank=True)
+    last_name = models.CharField(max_length=150, blank=True)
+    date_joined = models.DateTimeField(auto_now_add=True)
+
+    name = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    image = models.ImageField(
-        upload_to=user_directory_path,
-        blank=True
-    )
+    image = models.ImageField(upload_to=user_directory_path, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
+
     objects = CustomUserManager()
