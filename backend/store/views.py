@@ -102,6 +102,6 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
         serializer.save()
 
     def perform_destroy(self, instance):
-        if instance.user != self.request.user:
+        if instance.user != self.request.user and not self.request.user.is_staff:
             raise PermissionDenied("You do not have permission to delete this review.")
         instance.delete()
